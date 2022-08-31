@@ -1,0 +1,28 @@
+FROM python:slim
+MAINTAINER skay-zhang
+
+# 安装基础依赖
+RUN sed -i "s@http://\(deb\|security\).debian.org@https://mirrors.ustc.edu.cn@g" /etc/apt/sources.list && apt-get update && apt-get install -y wget git make cmake libglib2.0-0 libssl-dev libprotobuf-dev protobuf-compiler libgl1-mesa-glx g++
+# 安装CMake
+RUN mkdir -p /stacks-ocr/cmake && cd /stacks-ocr/cmake && wget https://cmake.org/files/LatestRelease/cmake-3.24.1.tar.gz && tar -xzvf cmake-3.24.1.tar.gz && cd cmake-3.24.1 && ./bootstrap && make -j4 && make install
+# 安装Paddle
+RUN python -m pip install paddlepaddle==2.3.2 -i https://mirror.baidu.com/pypi/simple && pip install --upgrade paddlehub -i https://mirror.baidu.com/pypi/simple
+# 拉取 OCR 代码
+RUN git clone https://github.com/PaddlePaddle/PaddleOCR.git /stacks-ocr/engine 
+
+WORKDIR /stacks-ocr/engine
+# 安装PaddleOCR依赖
+RUN pip install -r requirements.txt -i https://mirror.baidu.com/pypi/simple 
+# 安装模型
+ADD install.sh /stacks-ocr
+ADD service /stacks-ocr/engine/deploy/hubserving/
+RUN chmod 777 /stacks-ocr/engine/deploy/* && chmod 777 /stacks-ocr/install.sh && /stacks-ocr/install.sh
+# 复制运行所需文件
+ADD run.sh /stacks-ocr
+RUN chmod 777 /stacks-ocr/run.sh
+# 清理垃圾
+RUN rm -rf /stacks-ocr/cmake && rm -rf /stacks-ocr/engine/PPOCRLabel && rm -rf /stacks-ocr/engine/doc && rm -rf /stacks-ocr/engine/ppstructure/docs && apt-get remove -y --purge wget git make cmake g++
+
+EXPOSE 20100
+
+CMD ["/bin/bash","-c","/stacks-ocr/run.sh"]

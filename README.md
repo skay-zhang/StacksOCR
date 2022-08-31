@@ -2,7 +2,7 @@
 
 ## Development Route
 
-* [ ] OCR Basic Service
+* [x] OCR Basic Service
 * [ ] Environmental Management Services
 * [ ] Model Management Services
 * [ ] Web API
